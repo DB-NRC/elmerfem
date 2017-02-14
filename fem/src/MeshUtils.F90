@@ -6888,7 +6888,7 @@ END SUBROUTINE GetMaxDefs
       REAL(KIND=dp), ALLOCATABLE :: Basis(:), BasisM(:)
       REAL(KIND=dp), POINTER :: Alpha(:), AlphaM(:)
       REAL(KIND=dp), ALLOCATABLE :: WBasis(:,:),WBasisM(:,:),RotWbasis(:,:),dBasisdx(:,:)
-      LOGICAL :: LeftCircle, Stat, CornerFound(4), CornerFoundM(4), PosAngle
+      LOGICAL :: LeftCircle, Stat, CornerFound(4), CornerFoundM(4), PosAngle, LinEdges
       TYPE(Mesh_t), POINTER :: Mesh
       TYPE(Variable_t), POINTER :: TimestepVar
 
@@ -6908,6 +6908,7 @@ END SUBROUTINE GetMaxDefs
       DebugInd = ListGetInteger( BC,'Level Projector Debug Element Index',Found )
       SaveErr = ListGetLogical( BC,'Level Projector Save Fraction',Found)
 
+      LinEdges = ListGetLogical( BC,'Level Projector Linear Edges',Found)
       
       TimestepVar => VariableGet( Mesh % Variables,'Timestep',ThisOnly=.TRUE. )
       Timestep = NINT( TimestepVar % Values(1) )
@@ -7788,6 +7789,11 @@ END SUBROUTINE GetMaxDefs
                 IF (SecondOrder) THEN
 
                   DO j=1,2*ne+nf   ! for all slave dofs
+
+                    IF( LinEdges ) THEN
+                      IF( j >= 2*ne .OR. MODULO(j,2) == 0 ) CYCLE
+                    END IF
+                    
                     IF (j<=2*ne) THEN
                       edge = 1+(j-1)/2    ! The edge to which the dof is associated
                       edof = j-2*(edge-1) ! The edge-wise index of the dof
@@ -7807,6 +7813,11 @@ END SUBROUTINE GetMaxDefs
                     END IF
 
                     DO i=1,2*ne+nf ! for all slave dofs
+
+                      IF( LinEdges ) THEN
+                        IF( i >= 2*ne .OR. MODULO(i,2) == 0 ) CYCLE
+                      END IF
+
                       IF( i <= 2*ne ) THEN
                         edge = 1+(i-1)/2    ! The edge to which the dof is associated
                         edof = i-2*(edge-1) ! The edge-wise index of the dof
@@ -7825,6 +7836,11 @@ END SUBROUTINE GetMaxDefs
                     END DO
                     
                     DO i=1,2*neM+nfM ! for all master dofs
+
+                      IF( LinEdges ) THEN
+                        IF( i >= 2*neM .OR. MODULO(i,2) == 0 ) CYCLE
+                      END IF
+
                       IF( i <= 2*neM ) THEN
                         edge = 1+(i-1)/2    ! The edge to which the dof is associated
                         edof = i-2*(edge-1) ! The edge-wise index of the dof
@@ -7843,7 +7859,7 @@ END SUBROUTINE GetMaxDefs
                     END DO
                   END DO
 
-                ELSE
+                ELSE ! .NOT. SecondOrder
                   ! Dofs are numbered as follows:
                   ! 1....number of nodes
                   ! + ( 1 ... number of edges )
